@@ -43,14 +43,34 @@
 
 
         <script>
-            $(document).ready(function () {
-                function updateRoute(templateId) {
-                    const template = $("#templateId");
-                    const view = template.clone();
-                    
+            // Map URL paths to html templates
+            const routes = {
+                "/login" : { templateId : "login"},
+                "/dashboard" : { templateId : "dashboard"},
+            }
 
-                }
-            })
+            // Function for updating the content of a container (with the ID 'app') based on the current route/path
+            function updateRoute(templateId) {
+                const path = window.location.pathname;
+                const route = routes[path];
+
+                if (!route) { return navigate("/login"); }
+
+                const template = $(route.templateId);
+                const view = template.clone(true);
+                $("#app").html("");
+                $("#app").append(view);
+
+            }
+
+            // Function to navigate between pages
+            function navigate(path) {
+                window.history.pushState({}, path, path);
+                updateRoute();
+            }
+            $(document).ready(function () {
+                
+            });
         </script>
     </body>
 </html>
