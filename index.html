@@ -11,14 +11,14 @@
         <template id="login">
             <h1>Bank App</h1>
             <section>
-                <a href="/dashboard">Login</a>
+                <a href="/dashboard" onclick="onLinkClick(event)">Login</a>
             </section>
         </template>
         <!--HTML template for the dashboard page-->
         <template id="dashboard">
             <header>
                 <h1>Bank App</h1>
-                <a href="/login">Logout</a>
+                <a href="/login" onclick="onLinkClick(event)">Logout</a>
             </header>
             <section>
                 Balace: 100$
@@ -54,6 +54,7 @@
                 const path = window.location.pathname;
                 const route = routes[path];
 
+                // If a route cannot be found, redirect to the login page
                 if (!route) { return navigate("/login"); }
 
                 const template = $(route.templateId);
@@ -65,12 +66,22 @@
 
             // Function to navigate between pages
             function navigate(path) {
-                window.history.pushState({}, path, path);
+                window.history.pushState({}, path, path); // Update the browser's history with the new path
+                updateRoute(); // Call updateRoute to update the content based on the new path
+            }
+
+            // Function to get the URL when a link is clicked
+            function onLinkClick(event) {
+                event.preventDefault(); // Prevents the default link navigation behavior.
+                navigate($(event.target).attr("href")); // Calls the navigate function with the link's href as an argument
+            }
+
+            // To make sure the displayed template is updated when the browser history changes
+            window.onpopstate = () => {
                 updateRoute();
             }
-            $(document).ready(function () {
-                
-            });
+            updateRoute();
+            
         </script>
     </body>
 </html>
