@@ -11,6 +11,25 @@
         <template id="login">
             <h1>Bank App</h1>
             <section>
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <label for="username">Username</label>
+                    <input id="username" name="user" type="text">
+                    <button>Login</button>
+                </form>
+                <hr>
+                <h2>Register</h2>
+                <form id="registerForm" action="javascript:register()" method="POST">
+                    <label for="user">Username</label>
+                    <input id="user" name="user" type="text">
+                    <label for="currency">Currency</label>
+                    <input id="currency" name="currency" type="text" value="$">
+                    <label for="description">Description</label>
+                    <input id="description" name="description" type="text">
+                    <label for="balance">Current balance</label>
+                    <input id="balance" name="balance" type="number" value="0">
+                    <button>Register</button>
+                </form>
                 <a href="/dashboard" onclick="onLinkClick(event)">Login</a>
             </section>
         </template>
@@ -21,7 +40,7 @@
                 <a href="/login" onclick="onLinkClick(event)">Logout</a>
             </header>
             <section>
-                Balace: 100$
+                Balance: 100$
             </section>
             <section>
                 <h2>Transactions</h2>
@@ -50,16 +69,16 @@
             }
 
             // Function for updating the content of a container (with the ID 'app') based on the current route/path
-            function updateRoute(templateId) {
+            function updateRoute() {
                 const path = window.location.pathname;
                 const route = routes[path];
 
                 // If a route cannot be found, redirect to the login page
                 if (!route) { return navigate("/login"); }
 
-                const template = $(route.templateId);
-                const view = template.clone(true);
-                $("#app").html("");
+                const template = $("#" + route.templateId);
+                const view = template.contents().clone(true);
+                $("#app").empty();
                 $("#app").append(view);
 
             }
@@ -81,6 +100,39 @@
                 updateRoute();
             }
             updateRoute();
+
+            // Function to extract form data and convert to JSON format
+            async function register() {
+                const formData = new FormData("#registerForm"); // Extract the values from form controls as a set of key/value pairs
+                const data = Object.fromEntries(formData); //  Then we convert the data to a regular object
+                const jsonData = JSON.stringify(data); //  Finally serialize the data to JSON,
+
+                const result = await createAccount(jsonData)
+                if (result.error) {
+                    return console.log("An error occurred:", result.error);
+                }
+                console.log("Your Account Was Created!", result);
+            }
+
+            // Function to send form data to server API to create a new acc
+            async function createAccount(account) {
+                try {
+                    // The "await" keyword makes the code wait until the fetch operation is complete.
+                    const response = await fetch('//localhost:5000/api/accounts', {
+                        method: 'POST', // Specifies that we're sending data to the server.
+                        headers: { 'Content-Type': 'application/json' }, // Tells the server that we're sending JSON data.
+                        body: account // The actual account data we want to send.
+                    });
+
+                    // The "await" keyword makes the code wait until the response is processed.
+                    // It converts the response data (which is in JSON format) into a JavaScript object.
+                    return await response.json();
+                }
+                catch (error) {
+                    return { error: error.message || "Unknown error"};
+                }
+
+            }
             
         </script>
     </body>
