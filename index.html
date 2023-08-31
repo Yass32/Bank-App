@@ -14,15 +14,15 @@
             <section>
                 <h2>Login</h2>
                 <form id="loginForm" action="javascript:login()">
-                    <label for="username">Username</label>
-                    <input id="username" name="username" type="text">
+                    <label for="user">Username</label>
+                    <input id="user" name="user" type="text">
                     <button>Login</button>
                 </form>
                 <hr>
                 <h2>Register</h2>
-                <form id="registerForm" action="javascript:register()">
-                    <label for="username">Username*</label>
-                    <input id="username" name="username" type="text" maxlength="20" required>
+                <form id="registerForm" action="javascript:register()" >
+                    <label for="user">Username*</label>
+                    <input id="user" name="user" type="text" maxlength="20" required>
                     <label for="currency">Currency*</label>
                     <input id="currency" name="currency" type="text" value="$" maxlength="5" required>
                     <label for="description">Description</label>
@@ -63,6 +63,7 @@
 
 
         <script>
+            /*
             // To keep user info
             let account = null;
 
@@ -145,14 +146,14 @@
                 } 
             }
 
-            */
+            
 
             // Function to send form data to server API to create a new acc
             async function createAccount(account) {
    
                 try {
                 // The "await" keyword makes the code wait until the fetch operation is complete.
-                const response = await fetch('//localhost:5000/api/accounts', {
+                const response = await fetch('//localhost:5000/api/accounts/', {
                     method: 'POST', // Specifies that we're sending data to the server.
                     headers: { 'Content-Type': 'application/json' }, // Tells the server that we're sending JSON data.
                     body: account // The actual account data we want to send.
@@ -194,6 +195,254 @@
                     return { error: error.message || "Unkown error"};
                 }
             }
+            */
+
+            // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const serverUrl = 'http://localhost:5000/api';
+const storageKey = 'savedAccount';
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
+const routes = {
+  '/dashboard': { title: 'My Account', templateId: 'dashboard', init: refresh },
+  '/login': { title: 'Login', templateId: 'login' }
+};
+
+function navigate(path) {
+  window.history.pushState({}, path, window.location.origin + path);
+  updateRoute();
+}
+
+function updateRoute() {
+  const path = window.location.pathname;
+  const route = routes[path];
+
+  if (!route) {
+    return navigate('/dashboard');
+  }
+
+  const template = document.getElementById(route.templateId);
+  const view = template.content.cloneNode(true);
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  app.appendChild(view);
+  
+  if (typeof route.init === 'function') {
+    route.init();
+  }
+
+  document.title = route.title;
+}
+
+// ---------------------------------------------------------------------------
+// API interactions
+// ---------------------------------------------------------------------------
+
+async function sendRequest(api, method, body) {
+  try {
+    const response = await fetch(serverUrl + api, {
+      method: method || 'GET',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body
+    });
+    return await response.json();
+  } catch (error) {
+    return { error: error.message || 'Unknown error' };
+  }
+}
+
+async function getAccount(user) {
+  return sendRequest('/accounts/' + encodeURIComponent(user));
+}
+
+async function createAccount(account) {
+  return sendRequest('/accounts', 'POST', account);
+}
+
+async function createTransaction(user, transaction) {
+  return sendRequest('/accounts/' + user + '/transactions', 'POST', transaction);
+}
+
+// ---------------------------------------------------------------------------
+// Global state
+// ---------------------------------------------------------------------------
+
+let state = Object.freeze({
+  account: null
+});
+
+function updateState(property, newData) {
+  state = Object.freeze({
+    ...state,
+    [property]: newData
+  });
+  localStorage.setItem(storageKey, JSON.stringify(state.account));
+}
+
+// ---------------------------------------------------------------------------
+// Login/register
+// ---------------------------------------------------------------------------
+
+async function login() {
+  const loginForm = document.getElementById('loginForm')
+  const user = loginForm.user.value;
+  const data = await getAccount(user);
+
+  if (data.error) {
+    return updateElement('loginError', data.error);
+  }
+
+  updateState('account', data);
+  navigate('/dashboard');
+}
+
+async function register() {
+  const registerForm = document.getElementById('registerForm');
+  const formData = new FormData(registerForm);
+  const data = Object.fromEntries(formData);
+  const jsonData = JSON.stringify(data);
+  const result = await createAccount(jsonData);
+
+  if (result.error) {
+    return updateElement('registerError', result.error);
+  }
+
+  updateState('account', result);
+  navigate('/dashboard');
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+
+async function updateAccountData() {
+  const account = state.account;
+  if (!account) {
+    return logout();
+  }
+
+  const data = await getAccount(account.user);
+  if (data.error) {
+    return logout();
+  }
+
+  updateState('account', data);
+}
+
+async function refresh() {
+  await updateAccountData();
+  updateDashboard();
+}
+
+function updateDashboard() {
+  const account = state.account;
+  if (!account) {
+    return logout();
+  }
+
+  updateElement('description', account.description);
+  updateElement('balance', account.balance.toFixed(2));
+  updateElement('currency', account.currency);
+
+  // Update transactions
+  const transactionsRows = document.createDocumentFragment();
+  for (const transaction of account.transactions) {
+    const transactionRow = createTransactionRow(transaction);
+    transactionsRows.appendChild(transactionRow);
+  }
+  updateElement('transactions', transactionsRows);
+}
+
+function createTransactionRow(transaction) {
+  const template = document.getElementById('transaction');
+  const transactionRow = template.content.cloneNode(true);
+  const tr = transactionRow.querySelector('tr');
+  tr.children[0].textContent = transaction.date;
+  tr.children[1].textContent = transaction.object;
+  tr.children[2].textContent = transaction.amount.toFixed(2);
+  return transactionRow;
+}
+
+function addTransaction() {
+  const dialog = document.getElementById('transactionDialog');
+  dialog.classList.add('show');
+
+  // Reset form
+  const transactionForm = document.getElementById('transactionForm');
+  transactionForm.reset();
+
+  // Set date to today
+  transactionForm.date.valueAsDate = new Date();
+}
+
+async function confirmTransaction() {
+  const dialog = document.getElementById('transactionDialog');
+  dialog.classList.remove('show');
+
+  const transactionForm = document.getElementById('transactionForm');
+
+  const formData = new FormData(transactionForm);
+  const jsonData = JSON.stringify(Object.fromEntries(formData));
+  const data = await createTransaction(state.account.user, jsonData);
+
+  if (data.error) {
+    return updateElement('transactionError', data.error);
+  }
+
+  // Update local state with new transaction
+  const newAccount = {
+    ...state.account,
+    balance: state.account.balance + data.amount,
+    transactions: [...state.account.transactions, data]
+  }
+  updateState('account', newAccount);
+
+  // Update display
+  updateDashboard();
+}
+
+async function cancelTransaction() {
+  const dialog = document.getElementById('transactionDialog');
+  dialog.classList.remove('show');
+}
+
+function logout() {
+  updateState('account', null);
+  navigate('/login');
+}
+
+// ---------------------------------------------------------------------------
+// Utils
+// ---------------------------------------------------------------------------
+
+function updateElement(id, textOrNode) {
+  const element = document.getElementById(id);
+  element.textContent = ''; // Removes all children
+  element.append(textOrNode);
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+
+function init() {
+  // Restore state
+  const savedState = localStorage.getItem(storageKey);
+  if (savedState) {
+    updateState('account', JSON.parse(savedState));
+  }
+
+  // Update route for browser back/next buttons
+  window.onpopstate = () => updateRoute();
+  updateRoute();
+}
+
+init();
                 
 
             
