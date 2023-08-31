@@ -4,6 +4,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Bank App</title>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+
     </head>
     <body>
         <div id="app">Loading...</div>
@@ -12,25 +13,25 @@
             <h1>Bank App</h1>
             <section>
                 <h2>Login</h2>
-                <form id="loginForm">
+                <form id="loginForm" action="javascript:login()">
                     <label for="username">Username</label>
-                    <input id="username" name="user" type="text">
+                    <input id="username" name="username" type="text">
                     <button>Login</button>
                 </form>
                 <hr>
                 <h2>Register</h2>
-                <form id="registerForm" action="javascript:register()" method="POST">
-                    <label for="user">Username</label>
-                    <input id="user" name="user" type="text">
-                    <label for="currency">Currency</label>
-                    <input id="currency" name="currency" type="text" value="$">
+                <form id="registerForm" action="javascript:register()">
+                    <label for="username">Username*</label>
+                    <input id="username" name="username" type="text" maxlength="20" required>
+                    <label for="currency">Currency*</label>
+                    <input id="currency" name="currency" type="text" value="$" maxlength="5" required>
                     <label for="description">Description</label>
-                    <input id="description" name="description" type="text">
+                    <input id="description" name="description" type="text" maxlength="100">
                     <label for="balance">Current balance</label>
                     <input id="balance" name="balance" type="number" value="0">
                     <button>Register</button>
                 </form>
-                <a href="/dashboard" onclick="onLinkClick(event)">Login</a>
+                
             </section>
         </template>
         <!--HTML template for the dashboard page-->
@@ -62,6 +63,9 @@
 
 
         <script>
+            // To keep user info
+            let account = null;
+
             // Map URL paths to html templates
             const routes = {
                 "/login" : { templateId : "login"},
@@ -103,7 +107,8 @@
 
             // Function to extract form data and convert to JSON format
             async function register() {
-                const formData = new FormData("#registerForm"); // Extract the values from form controls as a set of key/value pairs
+                const form = $("#registerForm")[0];;
+                const formData = new FormData(form); // Extract the values from form controls as a set of key/value pairs
                 const data = Object.fromEntries(formData); //  Then we convert the data to a regular object
                 const jsonData = JSON.stringify(data); //  Finally serialize the data to JSON,
 
@@ -112,27 +117,86 @@
                     return console.log("An error occurred:", result.error);
                 }
                 console.log("Your Account Was Created!", result);
+
+                account = result;
+                navigate("/dashboard");
             }
+
+            /*
+
+            // Function to check if user name is exist in the server
+            async function checkAccountExists(username) {
+                try {
+                    const response = await fetch(`//localhost:5000/api/accounts/${username}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Assuming the API returns an object with the account data
+                        // You can modify this condition based on the actual response structure
+                        return data !== null;
+                    } else if (response.status === 404) {
+                        return false; // Username doesn't exist
+                    } else {
+                        console.error("Server returned an error:", response.status);
+                        return false;
+                    }
+                } catch (error) {
+                    console.error("An error occurred:", error);
+                    return false;
+                } 
+            }
+
+            */
 
             // Function to send form data to server API to create a new acc
             async function createAccount(account) {
+   
                 try {
-                    // The "await" keyword makes the code wait until the fetch operation is complete.
-                    const response = await fetch('//localhost:5000/api/accounts', {
-                        method: 'POST', // Specifies that we're sending data to the server.
-                        headers: { 'Content-Type': 'application/json' }, // Tells the server that we're sending JSON data.
-                        body: account // The actual account data we want to send.
-                    });
+                // The "await" keyword makes the code wait until the fetch operation is complete.
+                const response = await fetch('//localhost:5000/api/accounts', {
+                    method: 'POST', // Specifies that we're sending data to the server.
+                    headers: { 'Content-Type': 'application/json' }, // Tells the server that we're sending JSON data.
+                    body: account // The actual account data we want to send.
+                });
 
-                    // The "await" keyword makes the code wait until the response is processed.
-                    // It converts the response data (which is in JSON format) into a JavaScript object.
-                    return await response.json();
+                // The "await" keyword makes the code wait until the response is processed.
+                // It converts the response data (which is in JSON format) into a JavaScript object.
+                return await response.json();
                 }
                 catch (error) {
                     return { error: error.message || "Unknown error"};
                 }
 
             }
+
+            // Function to login user 
+            async function login() {
+                // Select the form element
+                const loginForm = $("#loginForm");
+
+                // Get the value of the input field within the form
+                const user = loginForm.find("#username").val();
+
+                const data = await getAccount(user);
+
+                if (!data) { return console.log("loginError", data.error); }
+
+                account = data;
+                navigate("/dashboard")
+            }
+
+            // Function to get user information
+            async function getAccount(user) {
+                try {
+                    const response = await fetch ("//localhost:5000/api/accounts/" + encodeURIComponent(user)); // if you don't use encodeURIComponent(user) and directly use user in the URL, you're risking issues with special characters and potential security vulnerabilities.
+                    return await response.json();
+                }
+                catch (error) {
+                    return { error: error.message || "Unkown error"};
+                }
+            }
+                
+
+            
             
         </script>
     </body>
