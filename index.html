@@ -48,6 +48,31 @@
             <h2 id="description"></h2>
             <section>
                 <h2>Transactions</h2>
+
+                <!-- Trigger button for the pop-up -->
+                <button id="showPopup">Add transaction</button>
+
+                <!-- Hidden pop-up container -->
+                <div id="popupModal" class="modal hidden">
+                    <div class="modal-content">
+                        <h2>ADD TRANSACTION</h2>
+                        <form id="popupForm" class="modal-form">
+                            <!-- Form fields -->
+                            <label for="date">DATE</label>
+                            <input type="date" id="date" name="date" required>
+                            <label for="object">OBJECT</label>
+                            <input type="text" id="object" name="object" required>
+                            <label for="amount">AMOUNT (USE NEGATIVE VALUE FOR DEBIT)</label>
+                            <input type="number" id="amount" name="amount" required>
+
+                            <button id="closePopup">Close</button>
+                            <button type="submit">OK</button>
+                        </form>
+
+                        <!-- Close button for the pop-up -->
+                        
+                    </div>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -74,14 +99,28 @@
 
 
         <script>
+            // Key to store user data
+            const storageKey = "savedAccount";
             
             // To keep user info
-            let account = null;
+            let state = Object.freeze({
+                account: null
+            });
+
+            function updateState(property, newData) {
+                state = Object.freeze({
+                    ...state,
+                    [property]: newData
+                });
+
+                
+                localStorage.setItem(storageKey, JSON.stringify(state.account));
+            }
 
             // Map URL paths to html templates
             const routes = {
                 "/login" : { templateId : "login"},
-                "/dashboard" : { templateId : "dashboard", init: updateDashboard},
+                "/dashboard" : { templateId : "dashboard", init: refresh },
             }
 
             // Function for updating the content of a container (with the ID 'app') based on the current route/path
@@ -90,7 +129,7 @@
                 const route = routes[path];
 
                 // If a route cannot be found, redirect to the login page
-                if (!route) { return navigate("/login"); }
+                if (!route) { return navigate("/dashboard"); }
 
                 const template = $("#" + route.templateId);
                 const view = template.contents().clone(true);
@@ -124,50 +163,31 @@
 
             // Function to extract form data and convert to JSON format
             async function register() {
-                const form = $("#registerForm")[0];;
+                const form = $("#registerForm")[0];
                 const formData = new FormData(form); // Extract the values from form controls as a set of key/value pairs
                 const data = Object.fromEntries(formData); //  Then we convert the data to a regular object
                 const jsonData = JSON.stringify(data); //  Finally serialize the data to JSON,
 
                 const result = await createAccount(jsonData)
                 if (result.error) {
-                    return updateElement("registerError:", result.error);
+                    return updateElement("registerError", result.error);
                 }
                 alert("Your Account Was Created Successfully");
 
-                account = result;
+                updateState("account", result);
                 navigate("/dashboard");
             }
 
             
 
-            // Function to check if user name is exist in the server
-            async function checkAccountExists(username) {
-                try {
-                    const response = await fetch(`//localhost:5000/api/accounts/${username}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        // Assuming the API returns an object with the account data
-                        // You can modify this condition based on the actual response structure
-                        return data !== null;
-                    } else if (response.status === 404) {
-                        return false; // Username doesn't exist
-                    } else {
-                        console.error("Server returned an error:", response.status);
-                        return false;
-                    }
-                } catch (error) {
-                    console.error("An error occurred:", error);
-                    return false;
-                } 
-            }
+            
             
 
             
 
             // Function to send form data to server API to create a new acc
             async function createAccount(account) {
-   
+
                 try {
                 // The "await" keyword makes the code wait until the fetch operation is complete.
                 const response = await fetch('//localhost:5000/api/accounts', {
@@ -190,15 +210,20 @@
             async function login() {
                 // Get the value of the input field within the form
                 const user = $("#loginForm").find("#user").val();
-                console.log(user)
 
                 const data = await getAccount(user);
 
-                if (data.error) { return updateElement("loginError:", data.error); }
+                if (data.error) { return updateElement("loginError", data.error); }
 
-                account = data;
+                updateState("account", data);
                 navigate("/dashboard")
             }
+
+            // Function to logout user
+            function logout() {
+                updateState("account", null);
+                navigate("/login");
+            } 
 
             // Function to get user information
             async function getAccount(user) {
@@ -212,14 +237,16 @@
             }
 
             // Update text content of an element
-            function updateElement(id, text) {
-                $(`#${id}`).html(text);
+            function updateElement(id, textOrNode) {
+                $(`#${id}`).empty();
+                $(`#${id}`).append(textOrNode);
             }
 
             // Function to fill in placeholder in dashboard
             function updateDashboard() {
+                const account = state.account;
                 if (!account) {
-                    return navigate("/login");
+                    return logout();
                 }
 
                 updateElement("description", account.description);
@@ -244,6 +271,85 @@
                 </tr>`);
                 return transactionRow;
             }
+
+            // checks that we are currently logged in then reloads the account data from the server
+            async function updateAccountData() {
+                const account = state.account;
+                if (!account) {
+                    return logout();
+                }
+
+                const data = await getAccount(account.user);
+                if (data.error) { return logout(); }
+
+                updateState("account", data);
+            }
+
+            // updates the account data, then takes care of updating the HTML of the dashboard page
+            async function refresh() {
+                await updateAccountData();
+                updateDashboard();
+            }
+
+
+
+            
+            $("#showPopup").on("click", function() {
+                $("#popupModal").removeClass("hidden");
+                $("body").css("overflow", "hidden"); // Prevent scrolling when the modal is open
+            });
+
+            $("#closePopup").on("click", function () {
+                $("#popupModal").addClass("hidden");
+                $("body").css("overflow", "auto");// Restore scrolling when the modal is closed
+            })
+
+            //Pop up form submission
+            $("#popupForm").submit( async function(event) {
+                event.preventDefault();//prevent default action
+                const form = $("#popupForm");
+                const formData = new FormData(form); // Extract the values from form controls as a set of key/value pairs
+                const data = Object.fromEntries(formData); //  Then we convert the data to a regular object
+                const jsonData = JSON.stringify(data); //  Finally serialize the data to JSON,
+
+                const trans = await addTransaction(jsonData);
+            })
+
+            async function addTransaction(data) {
+                try{
+                    let response = await fetch (`//localhost:5000/api/accounts/${account.user}/transaction`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: data
+                    });
+                    return await response.json();
+                }
+                catch (error) {
+                    return { error: error.message || "Unknown error"};
+                }
+            }
+            
+
+
+
+
+
+
+
+
+            // Here we retrieve the saved data, and if there's any we update the state accordingly
+            function init() {
+                const savedAccount = localStorage.getItem(storageKey);
+                if (savedAccount) {
+                    updateState('account', JSON.parse(savedAccount));
+                }
+
+                // Our previous initialization code
+                window.onpopstate = () => updateRoute();
+                updateRoute();
+            }
+
+            init();
                   
 
             
