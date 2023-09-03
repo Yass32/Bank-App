@@ -3,97 +3,107 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Bank App</title>
+        <link rel="stylesheet" href="styles.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 
     </head>
     <body>
+        <!-- Placeholder where we will insert our app HTML based on route -->
         <div id="app">Loading...</div>
-        <!--HTML template for the login page-->
+      
+        <!-- Login page template -->
         <template id="login">
-            <h1>Bank App</h1>
-            <section>
-                <h2>Login</h2>
+          <section class="login-page">
+            <div class="login-container">
+              <div class="login-title text-center">
+                <span class="hide-xs">Squirrel</span>
+                <img class="login-logo" src="logo.svg" alt="Squirrel Banking Logo">
+                <span class="hide-xs">Banking</span>
+              </div>
+              <div class="login-content">
+                <h2 class="text-center">Login</h2>
                 <form id="loginForm" action="javascript:login()">
-                    <label for="user">Username</label>
-                    <input id="user" name="user" type="text">
-                    <div id="loginError" role="alert"></div>
-                    <button>Login</button>
+                  <label for="username">Username</label>
+                  <input id="username" name="user" type="text" maxlength="20" required>
+                  <div id="loginError" class="error" role="alert"></div>
+                  <button>Login</button>
                 </form>
-                <hr>
-                <h2>Register</h2>
-                <form id="registerForm" action="javascript:register()" >
-                    <label for="user">Username*</label>
-                    <input id="user" name="user" type="text" maxlength="20" required>
-                    <label for="currency">Currency*</label>
-                    <input id="currency" name="currency" type="text" value="$" maxlength="5" required>
-                    <label for="description">Description</label>
-                    <input id="description" name="description" type="text" maxlength="100">
-                    <label for="balance">Current balance</label>
-                    <input id="balance" name="balance" type="number" value="0">
-                    <div id="registerError" role="alert"></div>
-                    <button>Register</button>
+                <p class="login-separator text-center"><span>OR</span></p>
+                <h2 class="text-center">Register</h2>
+                <form id="registerForm" action="javascript:register()">
+                  <label for="user">Username (required)</label>
+                  <input id="user" name="user" type="text" maxlength="20" required>
+                  <label for="currency">Currency (required)</label>
+                  <input id="currency" name="currency" type="text" maxlength="5" value="$" required>
+                  <label for="description">Description</label>
+                  <input id="description" name="description" type="text" maxlength="100">
+                  <label for="balance">Current balance</label>
+                  <input id="balance" name="balance" type="number" value="0">
+                  <div id="registerError" class="error" role="alert"></div>
+                  <button>Register</button>
                 </form>
-                
-            </section>
+              </div>
+            </div>
+          </section>
         </template>
-        <!--HTML template for the dashboard page-->
+      
+        <!-- Dashboard page template -->
         <template id="dashboard">
-            <header>
-                <h1>Bank App</h1>
-                <a href="/login" onclick="onLinkClick(event)">Logout</a>
+          <section class="dashboard-page">
+            <header class="dashboard-header">
+              <img class="dashboard-logo" src="logo.svg" alt="Squirrel Banking Logo">
+              <h1 class="dashboard-title hide-xs">Squirrel Banking</span>
+              <button onclick="logout()">Logout</button>
             </header>
-            <section>
-                Balance: <span id="balance"></span><span id="currency"></span>
-            </section>
-            <h2 id="description"></h2>
-            <section>
-                <h2>Transactions</h2>
-
-                <!-- Trigger button for the pop-up -->
-                <button id="showPopup">Add transaction</button>
-
-                <!-- Hidden pop-up container -->
-                <div id="popupModal" class="modal hidden">
-                    <div class="modal-content">
-                        <h2>ADD TRANSACTION</h2>
-                        <form id="popupForm" class="modal-form">
-                            <!-- Form fields -->
-                            <label for="date">DATE</label>
-                            <input type="date" id="date" name="date" required>
-                            <label for="object">OBJECT</label>
-                            <input type="text" id="object" name="object" required>
-                            <label for="amount">AMOUNT (USE NEGATIVE VALUE FOR DEBIT)</label>
-                            <input type="number" id="amount" name="amount" required>
-
-                            <button id="closePopup">Close</button>
-                            <button type="submit">OK</button>
-                        </form>
-
-                        <!-- Close button for the pop-up -->
-                        
-                    </div>
+            <div class="balance">
+              <div>Balance</div>
+              <span id="balance"></span>
+              <span id="currency"></span>
+            </div>
+            <div class="dashboard-content">
+              <div class="transactions-title">
+                <h2 id="description"></h2>
+                <button onclick="addTransaction()">Add transaction</button>
+              </div>
+              <table class="transactions-table" aria-label="Transactions">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Object</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="transactions"></tbody>
+              </table>
+            </div>
+          </section>
+          <section id="transactionDialog" class="dialog">
+            <div class="dialog-content">
+              <h2 class="text-center">Add transaction</h2>
+              <form id="transactionForm" action="javascript:void(0)">
+                <label for="date">Date</label> 
+                <input id="date" name="date" type="date" required>
+                <label for="object">Object</label> 
+                <input id="object" name="object" type="text" maxlength="50" required>
+                <label for="amount">Amount (use negative value for debit)</label> 
+                <input id="amount" name="amount" type="number" value="0" step="any" required>
+                <div id="transactionError" class="error" role="alert"></div>
+                <div class="dialog-buttons">
+                    <button type="button" class="button-alt" formaction="javascript:cancelTransaction()" formnovalidate>Cancel</button>
+                    <button formaction="javascript:confirmTransaction()">OK</button>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Object</th>   
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactions">
-
-                    </tbody>
-                </table>
-            </section>
+              </form>
+            </div>
+          </section>
         </template>
-
+      
+        <!-- Transaction row template -->
         <template id="transaction">
-            <tr>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
         </template>
         
 
@@ -209,7 +219,7 @@
             // Function to login user 
             async function login() {
                 // Get the value of the input field within the form
-                const user = $("#loginForm").find("#user").val();
+                const user = $("#loginForm").find("#username").val();
 
                 const data = await getAccount(user);
 
@@ -238,39 +248,45 @@
 
             // Update text content of an element
             function updateElement(id, textOrNode) {
-                $(`#${id}`).empty();
-                $(`#${id}`).append(textOrNode);
+                const element = $('#' + id);
+                element.empty(); // Removes all children
+                element.append(textOrNode);
             }
 
             // Function to fill in placeholder in dashboard
             function updateDashboard() {
-                const account = state.account;
-                if (!account) {
-                    return logout();
-                }
+    const account = state.account;
+    if (!account) {
+        return logout();
+    }
 
-                updateElement("description", account.description);
-                updateElement("balance", account.balance.toFixed(2));
-                updateElement("currency", account.currency);
+    updateElement("description", account.description);
+    updateElement("balance", account.balance.toFixed(2));
+    updateElement("currency", account.currency);
 
-                const transactionsRows = document.createDocumentFragment();
-                for (const transaction of account.transactions) {
-                    const transactionRow = createTransactionRow(transaction);
-                    transactionsRows.appendChild(transactionRow);
-                }
-                updateElement("transactions", transactionsRows);
-                
-            }
+    const transactionsRows = $('<div></div>'); // Create a jQuery div to hold transaction rows
+    for (const transaction of account.transactions) {
+        const transactionRow = createTransactionRow(transaction);
+        transactionsRows.append(transactionRow); // Append the transaction row to the div
+    }
+
+    // Now, update the HTML element with the transactions
+    $('#transactions').empty(); // Clear existing content
+    $('#transactions').append(transactionsRows.contents()); // Append contents of the div
+
+}
 
             // creates a new table row and fills in its contents using transaction data
             function createTransactionRow(transaction) {
-                const transactionRow = $(`<tr>
-                    <td>${transaction.date}</td>
-                    <td>${transaction.object}</td>
-                    <td>${transaction.amount.toFixed(2)}</td>
-                </tr>`);
+                const template = $('#transaction');
+                const transactionRow = template.contents().clone(true);
+                const tr = transactionRow.find('tr');
+                tr.children().eq(0).text(transaction.date);
+                tr.children().eq(1).text(transaction.object);
+                tr.children().eq(2).text(transaction.amount.toFixed(2));
                 return transactionRow;
             }
+
 
             // checks that we are currently logged in then reloads the account data from the server
             async function updateAccountData() {
@@ -291,43 +307,71 @@
                 updateDashboard();
             }
 
+            // Function to send form data to server API to create a new transaction
+            async function createTransaction(user, transactionData) {
+                try {
+                    const response = await fetch('//localhost:5000/api/accounts/' + encodeURIComponent(user) + "/transactions/", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: transactionData
+                    });
+
+                    return await response.json();
+                } catch (error) {
+                    return { error: error.message || 'Unknown error' };
+                }
+            }
+
+
 
 
             
-            $("#showPopup").on("click", function() {
-                $("#popupModal").removeClass("hidden");
-                $("body").css("overflow", "hidden"); // Prevent scrolling when the modal is open
-            });
+            function addTransaction() {
+                const dialog = $('#transactionDialog');
+                dialog.addClass('show');
 
-            $("#closePopup").on("click", function () {
-                $("#popupModal").addClass("hidden");
-                $("body").css("overflow", "auto");// Restore scrolling when the modal is closed
-            })
+                // Reset form
+                const transactionForm = $('#transactionForm')[0];
+                transactionForm.reset();
 
-            //Pop up form submission
-            $("#popupForm").submit( async function(event) {
-                event.preventDefault();//prevent default action
-                const form = $("#popupForm");
-                const formData = new FormData(form); // Extract the values from form controls as a set of key/value pairs
-                const data = Object.fromEntries(formData); //  Then we convert the data to a regular object
-                const jsonData = JSON.stringify(data); //  Finally serialize the data to JSON,
-
-                const trans = await addTransaction(jsonData);
-            })
-
-            async function addTransaction(data) {
-                try{
-                    let response = await fetch (`//localhost:5000/api/accounts/${account.user}/transaction`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: data
-                    });
-                    return await response.json();
-                }
-                catch (error) {
-                    return { error: error.message || "Unknown error"};
-                }
+                // Set date to today
+                transactionForm.date.valueAsDate = new Date();
             }
+
+            async function confirmTransaction() {
+                const dialog = $('#transactionDialog');
+                dialog.removeClass('show');
+
+                const transactionForm = $('#transactionForm')[0];
+
+                const formData = new FormData(transactionForm);
+                const jsonData = JSON.stringify(Object.fromEntries(formData));
+                const data = await createTransaction(state.account.user, jsonData);
+
+                if (data.error) {
+                    return updateElement('transactionError', data.error);
+                }
+
+                // Update local state with new transaction
+                const newAccount = {
+                    ...state.account,
+                    balance: state.account.balance + data.amount,
+                    transactions: [...state.account.transactions, data]
+                }
+                updateState('account', newAccount);
+
+                // Update display
+                updateDashboard();
+            }
+
+            function cancelTransaction() {
+                const dialog = $('#transactionDialog');
+                dialog.removeClass('show');
+            }
+
+
+
+
             
 
 
